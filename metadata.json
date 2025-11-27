@@ -1,0 +1,5 @@
+{
+  "name": "Timesheet Management Pro",
+  "description": "A comprehensive web tool for employees, managers, and admins to manage timesheets, leave requests, and projects. Users can submit and edit their entries, managers can approve or deny requests, and admins have full control over users and system data.",
+  "requestFramePermissions": []
+}

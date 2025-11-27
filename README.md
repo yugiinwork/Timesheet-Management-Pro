@@ -1,0 +1,1 @@
+Throughout heaven and earth, I (YUGI) alone am the honored one
