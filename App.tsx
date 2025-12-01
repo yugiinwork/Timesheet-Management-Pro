@@ -353,11 +353,21 @@ const App: React.FC = () => {
   // Setter functions using fetch
   const setUsers = async (value: React.SetStateAction<User[]>) => {
     const newUsers = typeof value === 'function' ? value(users) : value;
+
+    // Handle deletions
+    const usersToDelete = users.filter(u => !newUsers.find(nu => nu.id === u.id));
+    for (const u of usersToDelete) {
+      await fetch(`/api/users/${u.id}`, { method: 'DELETE', headers: getAuthHeaders() });
+    }
+
     for (const user of newUsers) {
       if (!users.find(u => u.id === user.id)) {
         await fetch(`/api/users`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(user) });
       } else {
-        await fetch(`/api/users/${user.id}`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(user) });
+        const existingUser = users.find(u => u.id === user.id);
+        if (existingUser && JSON.stringify(existingUser) !== JSON.stringify(user)) {
+          await fetch(`/api/users/${user.id}`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(user) });
+        }
       }
     }
     setAppData(prev => ({ ...prev, users: newUsers }));
@@ -366,6 +376,13 @@ const App: React.FC = () => {
 
   const setTimesheets = async (value: React.SetStateAction<Timesheet[]>) => {
     const newTimesheets = typeof value === 'function' ? value(timesheets) : value;
+
+    // Handle deletions
+    const timesheetsToDelete = timesheets.filter(t => !newTimesheets.find(nt => nt.id === t.id));
+    for (const t of timesheetsToDelete) {
+      await fetch(`/api/timesheets/${t.id}`, { method: 'DELETE', headers: getAuthHeaders() });
+    }
+
     for (const ts of newTimesheets) {
       // Ensure date is in YYYY-MM-DD format before sending to API
       const normalizedTimesheet = {
@@ -385,6 +402,13 @@ const App: React.FC = () => {
 
   const setLeaveRequests = async (value: React.SetStateAction<LeaveRequest[]>) => {
     const newLeaveRequests = typeof value === 'function' ? value(leaveRequests) : value;
+
+    // Handle deletions
+    const leaveRequestsToDelete = leaveRequests.filter(l => !newLeaveRequests.find(nl => nl.id === l.id));
+    for (const l of leaveRequestsToDelete) {
+      await fetch(`/api/leave_requests/${l.id}`, { method: 'DELETE', headers: getAuthHeaders() });
+    }
+
     const updatedLeaveRequests = newLeaveRequests.map(lr => ({ ...lr }));
 
     for (const lr of updatedLeaveRequests) {
@@ -419,6 +443,13 @@ const App: React.FC = () => {
 
   const setProjects = async (value: React.SetStateAction<Project[]>) => {
     const newProjects = typeof value === 'function' ? value(projects) : value;
+
+    // Handle deletions
+    const projectsToDelete = projects.filter(p => !newProjects.find(np => np.id === p.id));
+    for (const p of projectsToDelete) {
+      await fetch(`/api/projects/${p.id}`, { method: 'DELETE', headers: getAuthHeaders() });
+    }
+
     for (const p of newProjects) {
       if (!projects.find(pr => pr.id === p.id)) {
         await fetch(`/api/projects`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(p) });
@@ -432,6 +463,13 @@ const App: React.FC = () => {
 
   const setTasks = async (value: React.SetStateAction<Task[]>) => {
     const newTasks = typeof value === 'function' ? value(tasks) : value;
+
+    // Handle deletions
+    const tasksToDelete = tasks.filter(t => !newTasks.find(nt => nt.id === t.id));
+    for (const t of tasksToDelete) {
+      await fetch(`/api/tasks/${t.id}`, { method: 'DELETE', headers: getAuthHeaders() });
+    }
+
     for (const t of newTasks) {
       if (!tasks.find(ta => ta.id === t.id)) {
         await fetch(`/api/tasks`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(t) });
@@ -445,6 +483,13 @@ const App: React.FC = () => {
 
   const setNotifications = async (value: React.SetStateAction<Notification[]>) => {
     const newNotifications = typeof value === 'function' ? value(notifications) : value;
+
+    // Handle deletions
+    const notificationsToDelete = notifications.filter(n => !newNotifications.find(nn => nn.id === n.id));
+    for (const n of notificationsToDelete) {
+      await fetch(`/api/notifications/${n.id}`, { method: 'DELETE', headers: getAuthHeaders() });
+    }
+
     for (const n of newNotifications) {
       if (!notifications.find(no => no.id === n.id)) {
         await fetch(`/api/notifications`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(n) });
@@ -457,33 +502,41 @@ const App: React.FC = () => {
   };
 
   // Computed values (unchanged)
+  // Computed values
+  const isSuperAdmin = currentUser?.email === 'admin@gmail.com';
+
   const companyUsers = useMemo(() => {
     if (!currentUser) return [];
+    if (isSuperAdmin) return users;
     return users.filter(u => u.company === currentUser.company);
-  }, [currentUser, users]);
+  }, [currentUser, users, isSuperAdmin]);
 
   const companyProjects = useMemo(() => {
     if (!currentUser) return [];
+    if (isSuperAdmin) return projects;
     return projects.filter(p => p.company === currentUser.company);
-  }, [currentUser, projects]);
+  }, [currentUser, projects, isSuperAdmin]);
 
   const companyTimesheets = useMemo(() => {
     if (!currentUser) return [];
+    if (isSuperAdmin) return timesheets;
     const companyUserIds = companyUsers.map(u => u.id);
     return timesheets.filter(t => companyUserIds.includes(t.userId));
-  }, [currentUser, companyUsers, timesheets]);
+  }, [currentUser, companyUsers, timesheets, isSuperAdmin]);
 
   const companyLeaveRequests = useMemo(() => {
     if (!currentUser) return [];
+    if (isSuperAdmin) return leaveRequests;
     const companyUserIds = companyUsers.map(u => u.id);
     return leaveRequests.filter(l => companyUserIds.includes(l.userId));
-  }, [currentUser, companyUsers, leaveRequests]);
+  }, [currentUser, companyUsers, leaveRequests, isSuperAdmin]);
 
   const companyTasks = useMemo(() => {
     if (!currentUser) return [];
+    if (isSuperAdmin) return tasks;
     const companyProjectIds = companyProjects.map(p => p.id);
     return tasks.filter(t => companyProjectIds.includes(t.projectId));
-  }, [currentUser, companyProjects, tasks]);
+  }, [currentUser, companyProjects, tasks, isSuperAdmin]);
 
   const teamMembers = useMemo(() => {
     if (!currentUser) return [];
@@ -499,24 +552,43 @@ const App: React.FC = () => {
     }
     const companyUserIds = companyUsers.map(u => u.id);
     const teamMemberIds = teamMembers.map(tm => tm.id);
-    const isManagerOrAdmin = [Role.ADMIN, Role.MANAGER].includes(currentUser.role);
 
     const timesheetCount = timesheets.filter(t => {
       const isPending = t.status === Status.PENDING;
-      const isVisible = isManagerOrAdmin ? companyUserIds.includes(t.userId) : teamMemberIds.includes(t.userId);
-      return isPending && isVisible;
+
+      if (currentUser.role === Role.MANAGER) {
+        // Manager sees all pending items in company
+        return isPending && companyUserIds.includes(t.userId);
+      } else if (currentUser.role === Role.ADMIN) {
+        // Admin sees Team Leader and Employee items (not Manager's)
+        const submitter = companyUsers.find(u => u.id === t.userId);
+        return isPending && submitter && submitter.role !== Role.MANAGER && companyUserIds.includes(t.userId);
+      } else {
+        // Team Leader sees their team members
+        return isPending && teamMemberIds.includes(t.userId);
+      }
     }).length;
 
     const leaveCount = leaveRequests.filter(l => {
       const isPending = l.status === Status.PENDING;
-      const isVisible = isManagerOrAdmin ? companyUserIds.includes(l.userId) : teamMemberIds.includes(l.userId);
-      return isPending && isVisible;
+
+      if (currentUser.role === Role.MANAGER) {
+        // Manager sees all pending items in company
+        return isPending && companyUserIds.includes(l.userId);
+      } else if (currentUser.role === Role.ADMIN) {
+        // Admin sees Team Leader and Employee items (not Manager's)
+        const submitter = companyUsers.find(u => u.id === l.userId);
+        return isPending && submitter && submitter.role !== Role.MANAGER && companyUserIds.includes(l.userId);
+      } else {
+        // Team Leader sees their team members
+        return isPending && teamMemberIds.includes(l.userId);
+      }
     }).length;
 
     return { pendingTimesheetCount: timesheetCount, pendingLeaveCount: leaveCount };
   }, [currentUser, companyUsers, teamMembers, timesheets, leaveRequests]);
 
-  // Project hours update (unchanged)
+  // Project hours update
   useEffect(() => {
     const projectsWithUpdatedHours = projects.map(p => {
       const totalHours = timesheets.reduce((projectSum, ts) => {
@@ -1433,11 +1505,19 @@ const App: React.FC = () => {
       case 'TEAM_TIMESHEETS': {
         let itemsToReview: Timesheet[];
         let viewTitle: string;
-        let canApproveItems = currentUser.role !== Role.ADMIN;
+        let canApproveItems = true;
 
-        if (currentUser.role === Role.ADMIN || currentUser.role === Role.MANAGER) {
+        if (currentUser.role === Role.MANAGER) {
+          // Manager sees all timesheets in company
           itemsToReview = timesheets.filter(t => companyUserIds.includes(t.userId));
           viewTitle = "All Timesheets";
+        } else if (currentUser.role === Role.ADMIN) {
+          // Admin sees Team Leader and Employee timesheets (not Manager's)
+          itemsToReview = timesheets.filter(t => {
+            const submitter = companyUsers.find(u => u.id === t.userId);
+            return submitter && submitter.role !== Role.MANAGER && companyUserIds.includes(t.userId);
+          });
+          viewTitle = "Team Timesheets";
         } else { // Team Leader
           const teamMemberIds = teamMembers.map(tm => tm.id);
           itemsToReview = timesheets.filter(t => teamMemberIds.includes(t.userId));
@@ -1470,11 +1550,19 @@ const App: React.FC = () => {
       case 'TEAM_LEAVE': {
         let itemsToReview: LeaveRequest[];
         let viewTitle: string;
-        let canApproveItems = currentUser.role !== Role.ADMIN;
+        let canApproveItems = true;
 
-        if (currentUser.role === Role.ADMIN || currentUser.role === Role.MANAGER) {
+        if (currentUser.role === Role.MANAGER) {
+          // Manager sees all leave requests in company
           itemsToReview = leaveRequests.filter(l => companyUserIds.includes(l.userId));
           viewTitle = "All Leave Requests";
+        } else if (currentUser.role === Role.ADMIN) {
+          // Admin sees Team Leader and Employee leave requests (not Manager's)
+          itemsToReview = leaveRequests.filter(l => {
+            const submitter = companyUsers.find(u => u.id === l.userId);
+            return submitter && submitter.role !== Role.MANAGER && companyUserIds.includes(l.userId);
+          });
+          viewTitle = "Team Leave Requests";
         } else { // Team Leader
           const teamMemberIds = teamMembers.map(tm => tm.id);
           itemsToReview = leaveRequests.filter(l => teamMemberIds.includes(l.userId));
@@ -1505,16 +1593,23 @@ const App: React.FC = () => {
         />;
       }
       case 'PROJECTS': {
-        const companyTaskIds = tasks.filter(t => companyProjects.some(p => p.id === t.projectId)).map(t => t.id);
-        const companyTasks = tasks.filter(t => companyTaskIds.includes(t.id));
+        let visibleProjects = companyProjects;
+        if (currentUser.role === Role.TEAM_LEADER) {
+          visibleProjects = companyProjects.filter(p => p.teamLeaderId === currentUser.id || p.teamIds.includes(currentUser.id));
+        } else if (currentUser.role === Role.EMPLOYEE) {
+          visibleProjects = companyProjects.filter(p => p.teamIds.includes(currentUser.id));
+        }
+
+        const visibleProjectIds = visibleProjects.map(p => p.id);
+        const visibleTasks = tasks.filter(t => visibleProjectIds.includes(t.projectId));
 
         return <ProjectManagementPage
-          projects={companyProjects}
+          projects={visibleProjects}
           setProjects={setProjects}
           users={companyUsers}
           currentUser={currentUser}
           onExport={canExport ? handleExportProjects : undefined}
-          tasks={companyTasks}
+          tasks={visibleTasks}
           setTasks={setTasks}
           addNotification={addNotification}
           addToastNotification={addToastNotification}
@@ -1524,9 +1619,6 @@ const App: React.FC = () => {
         const usersForView = (currentUser.role === Role.TEAM_LEADER)
           ? teamMembers
           : companyUsers;
-
-        const companyTimesheets = timesheets.filter(t => companyUserIds.includes(t.userId));
-        const companyLeaveRequests = leaveRequests.filter(l => companyUserIds.includes(l.userId));
 
         return <UserManagementPage
           users={usersForView}
@@ -1543,6 +1635,7 @@ const App: React.FC = () => {
             setViewedEmployeeId(userId);
             setView('EMPLOYEE_DETAIL');
           }}
+          isSuperAdmin={isSuperAdmin}
         />;
       }
       case 'EMPLOYEE_DETAIL': {
@@ -1553,8 +1646,8 @@ const App: React.FC = () => {
         }
         return <EmployeeDetailPage
           employee={employee}
-          timesheets={timesheets.filter(t => t.userId === viewedEmployeeId)}
-          leaveRequests={leaveRequests.filter(l => l.userId === viewedEmployeeId)}
+          timesheets={companyTimesheets.filter(t => t.userId === viewedEmployeeId)}
+          leaveRequests={companyLeaveRequests.filter(l => l.userId === viewedEmployeeId)}
           projects={companyProjects}
           onBack={() => {
             setViewedEmployeeId(null);

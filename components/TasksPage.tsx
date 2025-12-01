@@ -154,6 +154,19 @@ export const TasksPage: React.FC<TasksPageProps> = ({ projects, tasks, users, cu
         setEditingTask(null);
     }
 
+    const handleDeleteTask = async (task: Task) => {
+        if (!canManageTasks) {
+            addToastNotification('You do not have permission to delete tasks.', 'Permission Denied');
+            return;
+        }
+
+        if (!confirm(`Are you sure you want to delete the task "${task.title}"? This action cannot be undone.`)) {
+            return;
+        }
+
+        await setTasks(prev => prev.filter(t => t.id !== task.id));
+    };
+
     const projectTasks = tasks.filter(t => t.projectId === selectedProjectId);
     const tasksByStatus: Record<TaskStatus, Task[]> = {
         'To Do': projectTasks.filter(t => t.status === 'To Do'),
@@ -195,7 +208,10 @@ export const TasksPage: React.FC<TasksPageProps> = ({ projects, tasks, users, cu
                 <div className="flex justify-between items-start">
                     <h4 className="font-bold text-slate-800 dark:text-slate-100">{task.title}</h4>
                     {canManageTasks && (
-                        <button onClick={() => handleEditTask(task)} className="text-xs text-sky-600 hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-200">Edit</button>
+                        <div className="flex gap-2">
+                            <button onClick={() => handleEditTask(task)} className="text-xs text-sky-600 hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-200">Edit</button>
+                            <button onClick={() => handleDeleteTask(task)} className="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-200">Delete</button>
+                        </div>
                     )}
                 </div>
                 {task.deadline && (

@@ -12,6 +12,7 @@ interface ProjectManagementPageProps {
   setTasks: (updater: React.SetStateAction<Task[]>) => Promise<void>;
   addToastNotification: (message: string, title?: string) => void;
   addNotification: (payload: { userId: number; title: string; message: string; linkTo?: View; }) => Promise<void>;
+  isSuperAdmin?: boolean;
 }
 
 const emptyProject = (managerId: number, company: string): Omit<Project, 'id'> => ({
@@ -108,7 +109,7 @@ const TaskModal: React.FC<{
 
 // --- Main Component ---
 
-export const ProjectManagementPage: React.FC<ProjectManagementPageProps> = ({ projects, setProjects, users, currentUser, onExport, tasks, setTasks, addToastNotification, addNotification }) => {
+export const ProjectManagementPage: React.FC<ProjectManagementPageProps> = ({ projects, setProjects, users, currentUser, onExport, tasks, setTasks, addToastNotification, addNotification, isSuperAdmin = false }) => {
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Omit<Project, 'id'> | Project>(emptyProject(currentUser.id, currentUser.company || ''));
   const [searchQuery, setSearchQuery] = useState('');
@@ -175,7 +176,7 @@ export const ProjectManagementPage: React.FC<ProjectManagementPageProps> = ({ pr
       ...editingProject,
       managerId: Number(editingProject.managerId),
       teamLeaderId: editingProject.teamLeaderId ? Number(editingProject.teamLeaderId) : undefined,
-      company: currentUser.company || '',
+      company: isSuperAdmin ? editingProject.company : (currentUser.company || ''),
     }
 
     if ('id' in projectData) {
@@ -188,6 +189,27 @@ export const ProjectManagementPage: React.FC<ProjectManagementPageProps> = ({ pr
       await setProjects(prev => [...prev, newProject]);
     }
     closeProjectModal();
+  };
+
+  const handleDeleteProject = async (project: Project) => {
+    const canDelete = currentUser.role === Role.MANAGER ||
+      currentUser.role === Role.ADMIN ||
+      (currentUser.role === Role.TEAM_LEADER && project.teamLeaderId === currentUser.id);
+
+    if (!canDelete) {
+      addToastNotification('You do not have permission to delete this project.', 'Permission Denied');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete the project "${project.name}"? This will also delete all associated tasks. This action cannot be undone.`)) {
+      return;
+    }
+
+    // Delete all tasks associated with this project
+    await setTasks(prev => prev.filter(t => t.projectId !== project.id));
+
+    // Delete the project
+    await setProjects(prev => prev.filter(p => p.id !== project.id));
   };
 
   const getStatusBadge = (status: ProjectStatus) => {
@@ -256,6 +278,19 @@ export const ProjectManagementPage: React.FC<ProjectManagementPageProps> = ({ pr
     setEditingTask(null);
   }
 
+  const handleDeleteTask = async (task: Task) => {
+    if (!canManageTasks) {
+      addToastNotification('You do not have permission to delete tasks.', 'Permission Denied');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete the task "${task.title}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    await setTasks(prev => prev.filter(t => t.id !== task.id));
+  };
+
   const TaskCard: React.FC<{ task: Task }> = ({ task }) => {
     const assignees = users.filter(u => (task.assignedTo || []).includes(u.id));
 
@@ -288,7 +323,10 @@ export const ProjectManagementPage: React.FC<ProjectManagementPageProps> = ({ pr
         <div className="flex justify-between items-start">
           <h4 className="font-bold text-slate-800 dark:text-slate-100">{task.title}</h4>
           {canManageTasks && (
-            <button onClick={() => handleEditTask(task)} className="text-xs text-sky-600 hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-200">Edit</button>
+            <div className="flex gap-2">
+              <button onClick={() => handleEditTask(task)} className="text-xs text-sky-600 hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-200">Edit</button>
+              <button onClick={() => handleDeleteTask(task)} className="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-200">Delete</button>
+            </div>
           )}
         </div>
         {task.deadline && (
@@ -410,6 +448,7 @@ export const ProjectManagementPage: React.FC<ProjectManagementPageProps> = ({ pr
               </div>
               <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">{project.jobName}</p>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Customer: {project.customerName}</p>
+              {isSuperAdmin && <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Company: {project.company}</p>}
 
               <div className="grid grid-cols-2 gap-4 my-4 text-center">
                 <div>
@@ -443,9 +482,17 @@ export const ProjectManagementPage: React.FC<ProjectManagementPageProps> = ({ pr
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
                 </button>
                 {canEditProjects && (
-                  <button onClick={(e) => { e.stopPropagation(); openProjectModal(project); }} className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 text-sm font-medium">
-                    Edit Info
-                  </button>
+                  <div className="flex gap-2">
+                    <button onClick={(e) => { e.stopPropagation(); openProjectModal(project); }} className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 text-sm font-medium">
+                      Edit Info
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteProject(project); }}
+                      className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-200 text-sm font-medium"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -491,6 +538,12 @@ export const ProjectManagementPage: React.FC<ProjectManagementPageProps> = ({ pr
                   </select>
                 </div>
               </div>
+              {isSuperAdmin && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-500 dark:text-slate-400">Company</label>
+                  <input type="text" name="company" placeholder="Company" value={editingProject.company} onChange={handleProjectInputChange} className="w-full p-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md" />
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input type="text" name="customerName" placeholder="Customer Name" value={editingProject.customerName} onChange={handleProjectInputChange} className="w-full p-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md" required />
                 <input type="text" name="jobName" placeholder="Job Name" value={editingProject.jobName} onChange={handleProjectInputChange} className="w-full p-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md" required />

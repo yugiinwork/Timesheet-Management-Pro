@@ -1,7 +1,7 @@
-
 import React, { useState } from 'react';
 import { User, Role } from '../types';
 import { formatDate } from '../utils';
+import { ImageCropperModal } from './ImageCropperModal';
 
 interface ProfilePageProps {
   user: User;
@@ -9,17 +9,11 @@ interface ProfilePageProps {
   currentUser: User;
 }
 
-const fileToBase64 = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = error => reject(error);
-  });
-}
-
 export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUpdateUser, currentUser }) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [cropperModalOpen, setCropperModalOpen] = useState(false);
+  const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
+  const [currentField, setCurrentField] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     ...user,
     dob: user.dob ? user.dob.split('T')[0] : ''
@@ -33,10 +27,54 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUpdateUser, cu
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, files } = e.target;
     if (files && files[0]) {
-      const base64 = await fileToBase64(files[0]);
-      setFormData(prev => ({ ...prev, [name]: base64 }));
+      const reader = new FileReader();
+      reader.addEventListener('load', () => {
+        setTempImageSrc(reader.result as string);
+        setCurrentField(name);
+        setCropperModalOpen(true);
+      });
+      reader.readAsDataURL(files[0]);
     }
   }
+
+  const handleCropComplete = async (croppedImageBase64: string) => {
+    if (currentField) {
+      try {
+        // Convert base64 to blob
+        const response = await fetch(croppedImageBase64);
+        const blob = await response.blob();
+
+        // Create FormData and append the image
+        const formData = new FormData();
+        formData.append('image', blob, 'profile-image.jpg');
+
+        // Upload to server
+        const token = localStorage.getItem('token');
+        const uploadResponse = await fetch('/api/upload-image', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error('Failed to upload image');
+        }
+
+        const { imageUrl } = await uploadResponse.json();
+
+        // Update form data with the server URL
+        setFormData(prev => ({ ...prev, [currentField]: imageUrl }));
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        alert('Failed to upload image. Please try again.');
+      }
+    }
+    setCropperModalOpen(false);
+    setTempImageSrc(null);
+    setCurrentField(null);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,6 +185,20 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUpdateUser, cu
           )}
         </div>
       </div>
+      {cropperModalOpen && tempImageSrc && (
+        <ImageCropperModal
+          imageSrc={tempImageSrc}
+          onCancel={() => {
+            setCropperModalOpen(false);
+            setTempImageSrc(null);
+            setCurrentField(null);
+          }}
+          onCropComplete={handleCropComplete}
+          aspectRatio={currentField === 'bannerUrl' ? 3 : 1}
+          outputWidth={currentField === 'bannerUrl' ? 1200 : 800}
+          outputHeight={currentField === 'bannerUrl' ? 400 : 800}
+        />
+      )}
     </div>
   );
 };

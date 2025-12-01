@@ -15,8 +15,8 @@ CREATE TABLE IF NOT EXISTS users (
   phone VARCHAR(20),
   address TEXT,
   designation VARCHAR(255),
-  profilePictureUrl TEXT DEFAULT 'https://cdn-icons-png.flaticon.com/512/847/847969.png',
-  bannerUrl TEXT DEFAULT 'https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=2000&auto=format&fit=crop',
+  profilePictureUrl LONGTEXT DEFAULT 'https://cdn-icons-png.flaticon.com/512/847/847969.png',
+  bannerUrl LONGTEXT DEFAULT 'https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=2000&auto=format&fit=crop',
   company VARCHAR(255),
   isActive BOOLEAN DEFAULT TRUE,
   FOREIGN KEY (managerId) REFERENCES users(id) ON DELETE SET NULL

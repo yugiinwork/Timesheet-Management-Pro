@@ -177,11 +177,11 @@ export const TimesheetPage: React.FC<TimesheetPageProps> = ({ currentUser, users
       .filter(we => {
         const hasCoreInfo = we.hours > 0 && we.description.trim() !== '';
         if (!hasCoreInfo) return false;
-        if (currentUser.role === Role.ADMIN) return true; // project is optional for admin
+        if (currentUser.role === Role.ADMIN || currentUser.role === Role.MANAGER) return true; // project is optional for admin/manager
         return !!we.projectId; // project is required for others
       })
       .reduce((acc: Record<number, WorkEntry[]>, current) => {
-        const projectId = (current.projectId === '' && currentUser.role === Role.ADMIN)
+        const projectId = (current.projectId === '' && (currentUser.role === Role.ADMIN || currentUser.role === Role.MANAGER))
           ? 0
           : current.projectId as number;
 
@@ -200,7 +200,7 @@ export const TimesheetPage: React.FC<TimesheetPageProps> = ({ currentUser, users
 
     if (finalProjectWork.length === 0) {
       let message = "Please enter at least one valid work entry with a project, description, and hours.";
-      if (currentUser.role === Role.ADMIN) {
+      if (currentUser.role === Role.ADMIN || currentUser.role === Role.MANAGER) {
         message = "Please enter at least one valid work entry with a description and hours. Project is optional.";
       }
       alert(message);
@@ -254,6 +254,24 @@ export const TimesheetPage: React.FC<TimesheetPageProps> = ({ currentUser, users
       }
     }
     closeModal();
+  };
+
+  const handleDeleteTimesheet = async (timesheet: Timesheet) => {
+    if (timesheet.userId !== currentUser.id) {
+      addToastNotification('You can only delete your own timesheets.', 'Permission Denied');
+      return;
+    }
+
+    if (timesheet.status !== Status.PENDING) {
+      addToastNotification('You can only delete timesheets that are pending approval.', 'Cannot Delete');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete the timesheet for ${formatDate(timesheet.date)}? This action cannot be undone.`)) {
+      return;
+    }
+
+    await setTimesheets(prev => prev.filter(t => t.id !== timesheet.id));
   };
 
   const getStatusBadge = (status: Status) => {
@@ -377,9 +395,14 @@ export const TimesheetPage: React.FC<TimesheetPageProps> = ({ currentUser, users
                     View
                   </button>
                   {ts.status === Status.PENDING && (
-                    <button onClick={() => openModal(ts)} className="text-sky-600 hover:text-sky-900 dark:text-sky-400 dark:hover:text-sky-200">
-                      Edit
-                    </button>
+                    <>
+                      <button onClick={() => openModal(ts)} className="text-sky-600 hover:text-sky-900 dark:text-sky-400 dark:hover:text-sky-200">
+                        Edit
+                      </button>
+                      <button onClick={() => handleDeleteTimesheet(ts)} className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-200">
+                        Delete
+                      </button>
+                    </>
                   )}
                 </td>
               </tr>
@@ -422,7 +445,7 @@ export const TimesheetPage: React.FC<TimesheetPageProps> = ({ currentUser, users
                   <div className="space-y-3">
                     {editingTimesheet.workEntries.map((entry, index) => (
                       <div key={index} className="grid grid-cols-12 gap-2 items-center">
-                        {currentUser.role !== Role.ADMIN && (
+                        {currentUser.role !== Role.ADMIN && currentUser.role !== Role.MANAGER && (
                           <select
                             value={entry.projectId}
                             onChange={(e) => handleWorkEntryChange(index, 'projectId', e.target.value)}
@@ -438,7 +461,7 @@ export const TimesheetPage: React.FC<TimesheetPageProps> = ({ currentUser, users
                           placeholder="Work description"
                           value={entry.description}
                           onChange={(e) => handleWorkEntryChange(index, 'description', e.target.value)}
-                          className={`p-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md ${currentUser.role === Role.ADMIN ? 'col-span-12 sm:col-span-9' : 'col-span-12 sm:col-span-5'
+                          className={`p-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md ${(currentUser.role === Role.ADMIN || currentUser.role === Role.MANAGER) ? 'col-span-12 sm:col-span-9' : 'col-span-12 sm:col-span-5'
                             }`}
                           required
                         />

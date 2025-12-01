@@ -64,10 +64,26 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ currentUser, users
         ...leaveRequests.filter(l => l.userId === currentUser.id).map(l => ({ ...l, type: 'Leave', date: (l.leaveEntries || [])[0]?.date || '' }))
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
 
-    const teamRecentActivity = isManagerial ? [
-        ...timesheets.filter(t => (currentUser.role === Role.ADMIN || currentUser.role === Role.MANAGER ? true : users.find(u => u.id === t.userId)?.managerId === currentUser.id)).map(t => ({ ...t, type: 'Timesheet', date: t.date })),
-        ...leaveRequests.filter(l => (currentUser.role === Role.ADMIN || currentUser.role === Role.MANAGER ? true : users.find(u => u.id === l.userId)?.managerId === currentUser.id)).map(l => ({ ...l, type: 'Leave', date: (l.leaveEntries || [])[0]?.date || '' }))
-    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5) : [];
+    const teamRecentActivity = isManagerial ? (() => {
+        const filterByRole = (item: any) => {
+            if (currentUser.role === Role.MANAGER) {
+                // Manager sees all activity
+                return true;
+            } else if (currentUser.role === Role.ADMIN) {
+                // Admin sees Team Leader and Employee activity (not Manager's)
+                const submitter = users.find(u => u.id === item.userId);
+                return submitter && submitter.role !== Role.MANAGER;
+            } else {
+                // Team Leader sees their team members
+                return users.find(u => u.id === item.userId)?.managerId === currentUser.id;
+            }
+        };
+
+        return [
+            ...timesheets.filter(filterByRole).map(t => ({ ...t, type: 'Timesheet', date: t.date })),
+            ...leaveRequests.filter(filterByRole).map(l => ({ ...l, type: 'Leave', date: (l.leaveEntries || [])[0]?.date || '' }))
+        ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
+    })() : [];
 
     const myOpenTasks = tasks
         .filter(t => (t.assignedTo || []).includes(currentUser.id) && t.status !== 'Done')

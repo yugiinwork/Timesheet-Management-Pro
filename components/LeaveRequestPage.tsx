@@ -127,6 +127,24 @@ export const LeaveRequestPage: React.FC<LeaveRequestPageProps> = ({ currentUser,
     closeModal();
   };
 
+  const handleDeleteLeaveRequest = async (request: LeaveRequest) => {
+    if (request.userId !== currentUser.id) {
+      addToastNotification('You can only delete your own leave requests.', 'Permission Denied');
+      return;
+    }
+
+    if (request.status !== Status.PENDING) {
+      addToastNotification('You can only delete leave requests that are pending approval.', 'Cannot Delete');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete this leave request? This action cannot be undone.`)) {
+      return;
+    }
+
+    await setLeaveRequests(prev => prev.filter(r => r.id !== request.id));
+  };
+
   const getStatusBadge = (status: Status) => {
     const baseClasses = "px-2 py-1 text-xs font-semibold rounded-full";
     switch (status) {
@@ -241,9 +259,14 @@ export const LeaveRequestPage: React.FC<LeaveRequestPageProps> = ({ currentUser,
                     View
                   </button>
                   {req.status === Status.PENDING && (
-                    <button onClick={() => openModal(req)} className="text-sky-600 hover:text-sky-900 dark:text-sky-400 dark:hover:text-sky-200">
-                      Edit
-                    </button>
+                    <>
+                      <button onClick={() => openModal(req)} className="text-sky-600 hover:text-sky-900 dark:text-sky-400 dark:hover:text-sky-200">
+                        Edit
+                      </button>
+                      <button onClick={() => handleDeleteLeaveRequest(req)} className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-200">
+                        Delete
+                      </button>
+                    </>
                   )}
                 </td>
               </tr>

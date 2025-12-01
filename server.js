@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import https from 'https';
 import fs from 'fs';
+import multer from 'multer';
 
 dotenv.config();
 console.log('Current NODE_ENV:', process.env.NODE_ENV);
@@ -28,7 +29,8 @@ app.use(cors({
   allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'Cache-Control', 'Pragma'],
   maxAge: 86400
 }));
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // MySQL connection
 const pool = mysql.createPool({
@@ -60,13 +62,48 @@ const authenticate = (req, res, next) => {
 
 // Welcome & health
 app.get('/', (req, res) => {
-  res.send('API alive! Endpoints: /api/register, /api/login, /api/users, /api/projects, /api/tasks, /api/timesheets, /api/leave_requests, /api/notifications, /api/best_employees');
+  res.send('API alive! Endpoints: /api/register, /api/login, /api/users, /api/projects, /api/tasks, /api/timesheets, /api/leave_requests, /api/notifications, /api/best_employees, /api/upload-image');
 });
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'CORS OK for http://10.53.14.50:3000' });
 });
 
 const __dirname = path.resolve();
+
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Multer configuration
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|webp|cr2/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'));
+    }
+  }
+});
+
+// Serve uploaded files
+app.use('/uploads', express.static(uploadsDir));
 
 app.use(express.static(path.join(__dirname, 'dist')));
 
@@ -75,6 +112,21 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
+
+// --- Image Upload Endpoint ---
+app.post('/api/upload-image', authenticate, upload.single('image'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+    // Return the URL path to the uploaded file
+    const imageUrl = `/uploads/${req.file.filename}`;
+    res.json({ imageUrl });
+  } catch (err) {
+    console.error('Upload error:', err);
+    res.status(500).json({ error: 'Failed to upload image' });
+  }
+});
 
 // --- Auth: Register ---
 app.post('/api/register', async (req, res) => {
@@ -197,9 +249,16 @@ app.put('/api/users/:id', authenticate, async (req, res) => {
       address, designation, profilePictureUrl, bannerUrl, company, isActive
     } = req.body;
     let hash = null;
-    if (password) hash = await bcrypt.hash(password, 10);
+    const isBcryptHash = (s) => /^\$2[ayb]\$.{56}$/.test(s);
+    if (password) {
+      if (isBcryptHash(password)) {
+        hash = password;
+      } else {
+        hash = await bcrypt.hash(password, 10);
+      }
+    }
     const [result] = await pool.query(
-      `UPDATE users SET employeeId=?, name=?, email=?, password=?, dob=?, role=?, managerId=?, phone=?, address=?, designation=?, profilePictureUrl=?, bannerUrl=?, company=?, isActive=? WHERE id=?`,
+      `UPDATE users SET employeeId=?, name=?, email=?, password=COALESCE(?, password), dob=?, role=?, managerId=?, phone=?, address=?, designation=?, profilePictureUrl=?, bannerUrl=?, company=?, isActive=? WHERE id=?`,
       [employeeId, name, email, hash, dob, role, managerId || null, phone, address, designation, profilePictureUrl || null, bannerUrl || null, company || null, isActive || 1, req.params.id]
     );
     res.json({ success: true });
@@ -210,6 +269,12 @@ app.put('/api/users/:id', authenticate, async (req, res) => {
 });
 app.delete('/api/users/:id', authenticate, async (req, res) => {
   try {
+    // Prevent deleting the super admin
+    const [targetUser] = await pool.query('SELECT email FROM users WHERE id=?', [req.params.id]);
+    if (targetUser.length > 0 && targetUser[0].email === 'admin@gmail.com') {
+      return res.status(403).json({ error: "Cannot delete the Super Admin user" });
+    }
+
     await pool.query('DELETE FROM users WHERE id=?', [req.params.id]);
     res.sendStatus(200);
   } catch (err) {
@@ -538,7 +603,7 @@ async function ensureAdminUser() {
   } else {
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 API server running locally at http://10.53.14.50:${PORT}`);
-      console.log(`🌐 CORS for: http://10.53.14.50:3000`);
+      console.log(`🌐 CORS for: https://10.53.14.50:3000`);
       console.log(`🔧 Default admin: admin@gmail.com / admin`);
     });
   }
