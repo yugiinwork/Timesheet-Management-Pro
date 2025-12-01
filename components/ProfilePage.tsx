@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { User, Role } from '../types';
+import { formatDate } from '../utils';
 
 interface ProfilePageProps {
   user: User;
@@ -121,7 +122,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onUpdateUser, cu
                 <InfoField label="Role" value={user.role} />
                 <InfoField label="Email Address" value={user.email} />
                 <InfoField label="Phone Number" value={user.phone} />
-                <InfoField label="Date of Birth" value={user.dob} />
+                <InfoField label="Date of Birth" value={formatDate(user.dob || '')} />
                 <div className="md:col-span-2">
                   <InfoField label="Address" value={user.address} />
                 </div>
