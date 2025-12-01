@@ -5,3 +5,4 @@ NOTE:
    password: admin (this is a super admin)
 2. Every new user ia a admin of that workplace.
 3. hierarchy used : manager  >  teamleader/admin  >  employee
+4. A super admin has a absolute power of the website.
