@@ -18,6 +18,7 @@ import { NotificationCenter } from './components/NotificationCenter';
 
 import { SetBestEmployeeOfYearModal } from './components/SetBestEmployeeOfYearModal';
 import { EmployeeDetailPage } from './components/EmployeeDetailPage';
+import { SuperAdminSetup } from './components/SuperAdminSetup';
 
 // Declare XLSX for the linter since it's loaded from a script tag.
 declare var XLSX: any;
@@ -67,7 +68,9 @@ const App: React.FC = () => {
   const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   const [viewedEmployeeId, setViewedEmployeeId] = useState<number | null>(null);
+  const [isSystemInitialized, setIsSystemInitialized] = useState<boolean | null>(null);
 
   // Global State
   const [appData, setAppData] = useState({
@@ -111,7 +114,20 @@ const App: React.FC = () => {
       root.classList.remove('dark');
     }
     localStorage.setItem('theme', theme);
+
   }, [theme]);
+
+  // Check system initialization status
+  useEffect(() => {
+    fetch('/api/system-status')
+      .then(res => res.json())
+      .then(data => setIsSystemInitialized(data.isInitialized))
+      .catch(err => {
+        console.error("Failed to check system status", err);
+        // If check fails, assume initialized to allow login (or handle error differently)
+        setIsSystemInitialized(true);
+      });
+  }, []);
 
   // Restore session on mount
   useEffect(() => {
@@ -1051,8 +1067,10 @@ const App: React.FC = () => {
     setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
   };
 
+
+
   // Loading screen
-  if (loading) {
+  if (loading || isSystemInitialized === null) { // Added isSystemInitialized === null to loading condition
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-slate-900">
         <div className="flex flex-col items-center">

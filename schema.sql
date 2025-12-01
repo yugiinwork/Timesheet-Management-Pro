@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(255) NOT NULL UNIQUE,
   password VARCHAR(255) NOT NULL,
   dob DATE,
-  role ENUM('Employee', 'Manager', 'Admin', 'Team Leader') NOT NULL,
+  role ENUM('Employee', 'Manager', 'Admin', 'Team Leader', 'Superadmin') NOT NULL,
   managerId INT,
   phone VARCHAR(20),
   address TEXT,

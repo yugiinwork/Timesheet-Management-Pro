@@ -559,26 +559,72 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // --- Ensure Admin User ---
-async function ensureAdminUser() {
+// async function ensureAdminUser() {
+//   try {
+//     const [rows] = await pool.query('SELECT id FROM users WHERE email=?', ['admin@gmail.com']);
+//     if (rows.length === 0) {
+//       const hash = await bcrypt.hash('admin', 10);
+//       await pool.query(
+//         'INSERT INTO users (name, email, password, role, isActive, dob, phone, address, designation, profilePictureUrl, bannerUrl, company) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+//         ['Admin', 'admin@gmail.com', hash, 'Admin', 1, '1970-01-01', '0000000000', 'Default Address', 'Administrator', 'https://cdn-icons-png.flaticon.com/512/847/847969.png', 'https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=2000&auto=format&fit=crop', 'Default Company']);
+//       console.log('Default admin user created: admin@gmail.com / admin');
+//     } else {
+//       console.log('Admin user already exists.');
+//     }
+//   } catch (err) {
+//     console.error('Error ensuring admin user:', err);
+//   }
+// }
+
+// --- System Status & Setup ---
+app.get('/api/system-status', async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT id FROM users WHERE email=?', ['admin@gmail.com']);
-    if (rows.length === 0) {
-      const hash = await bcrypt.hash('admin', 10);
-      await pool.query(
-        'INSERT INTO users (name, email, password, role, isActive, dob, phone, address, designation, profilePictureUrl, bannerUrl, company) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        ['Admin', 'admin@gmail.com', hash, 'Admin', 1, '1970-01-01', '0000000000', 'Default Address', 'Administrator', 'https://cdn-icons-png.flaticon.com/512/847/847969.png', 'https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=2000&auto=format&fit=crop', 'Default Company']);
-      console.log('Default admin user created: admin@gmail.com / admin');
-    } else {
-      console.log('Admin user already exists.');
-    }
+    const [rows] = await pool.query("SELECT count(*) as count FROM users WHERE role='Superadmin' OR role='Admin'");
+    const isInitialized = rows[0].count > 0;
+    res.json({ isInitialized });
   } catch (err) {
-    console.error('Error ensuring admin user:', err);
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
   }
-}
+});
+
+app.post('/api/setup-superadmin', async (req, res) => {
+  try {
+    // Check if any admin/superadmin exists
+    const [rows] = await pool.query("SELECT count(*) as count FROM users WHERE role='Superadmin' OR role='Admin'");
+    if (rows[0].count > 0) {
+      return res.status(403).json({ error: "System already initialized" });
+    }
+
+    const {
+      name, email, password, dob, phone,
+      address, designation, profilePictureUrl, bannerUrl, company
+    } = req.body;
+
+    if (!name || !email || !password)
+      return res.status(400).json({ error: "Missing required fields (name, email, password)" });
+
+    const hash = await bcrypt.hash(password, 10);
+    const [result] = await pool.query(
+      `INSERT INTO users (employeeId, name, email, password, dob, role, managerId, phone, address, designation, profilePictureUrl, bannerUrl, company, isActive) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [null, name, email, hash, dob || null, 'Superadmin', null, phone || null, address || null, designation || 'Super Admin', profilePictureUrl || 'https://cdn-icons-png.flaticon.com/512/847/847969.png', bannerUrl || 'https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=2000&auto=format&fit=crop', company || null, 1]
+    );
+
+    // Auto-login the new superadmin
+    const payload = { id: result.insertId, name, email, role: 'Superadmin', company };
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+
+    res.json({ success: true, user: payload, token });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
 
 // --- Start Server ---
 (async () => {
-  await ensureAdminUser();
+  // await ensureAdminUser();
 
   if (process.env.NODE_ENV === 'production') {
     try {
