@@ -1,1 +1,6 @@
-Throughout heaven and earth, I (YUGI) alone am the honored one
+This is a project that I made for my workplace. This works in a local environment and I configured "https://10.53.14.50:3000" as my base url and "http://10.53.14.50:3001" server. I used mysql database on 10.53.14.50:3306. I uploaded everything related to my project in this git repository. i kindly ask you to give me a proper comments on my project.
+
+NOTE: 
+1. Every new user ia a admin of that workplace.
+2. hierarchy used : manager  >  teamleader/admin  >  employee
+3. A super admin has a absolute power of the website.
