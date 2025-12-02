@@ -3,6 +3,7 @@ export enum Role {
   MANAGER = 'Manager',
   ADMIN = 'Admin',
   TEAM_LEADER = 'Team Leader',
+  SUPERADMIN = 'Superadmin',
 }
 
 export enum Status {

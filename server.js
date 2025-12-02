@@ -270,8 +270,8 @@ app.put('/api/users/:id', authenticate, async (req, res) => {
 app.delete('/api/users/:id', authenticate, async (req, res) => {
   try {
     // Prevent deleting the super admin
-    const [targetUser] = await pool.query('SELECT email FROM users WHERE id=?', [req.params.id]);
-    if (targetUser.length > 0 && targetUser[0].email === 'admin@gmail.com') {
+    const [targetUser] = await pool.query('SELECT role FROM users WHERE id=?', [req.params.id]);
+    if (targetUser.length > 0 && targetUser[0].role === 'Superadmin') {
       return res.status(403).json({ error: "Cannot delete the Super Admin user" });
     }
 

@@ -519,7 +519,7 @@ const App: React.FC = () => {
 
   // Computed values (unchanged)
   // Computed values
-  const isSuperAdmin = currentUser?.email === 'admin@gmail.com';
+  const isSuperAdmin = currentUser?.role === Role.SUPERADMIN;
 
   const companyUsers = useMemo(() => {
     if (!currentUser) return [];
