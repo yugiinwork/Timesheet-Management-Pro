@@ -16,7 +16,7 @@ export const NotificationToast: React.FC<NotificationToastProps> = ({ message, t
   }, [onClose]);
 
   return (
-    <div className="max-w-sm w-full bg-white dark:bg-slate-800 shadow-lg rounded-lg pointer-events-auto ring-1 ring-black dark:ring-slate-700 ring-opacity-5 overflow-hidden animate-fade-in-right">
+    <div className="max-w-sm w-96 bg-white dark:bg-slate-800 shadow-lg rounded-lg pointer-events-auto ring-1 ring-black dark:ring-slate-700 ring-opacity-5 overflow-hidden animate-fade-in-right p-4">
       <div>
         <div className="flex items-start">
           <div className="flex-shrink-0">

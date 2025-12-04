@@ -51,7 +51,7 @@ export const UserManagementPage: React.FC<UserManagementPageProps> = ({
   const managersAndLeaders = allUsers.filter(u => u.role === Role.MANAGER || u.role === Role.ADMIN || u.role === Role.TEAM_LEADER);
 
   const isManagerial = [Role.ADMIN, Role.MANAGER, Role.TEAM_LEADER].includes(currentUser.role);
-  const isAdmin = currentUser.role === Role.ADMIN;
+  const isAdmin = currentUser.role === Role.ADMIN || isSuperAdmin;
 
   const openModal = (user?: User) => {
     setEditingUser(user || emptyUser(currentUser));

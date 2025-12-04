@@ -179,9 +179,15 @@ app.post('/api/login', async (req, res) => {
 });
 
 // --- Auth: Reset Password ---
-app.post('/api/reset-password', async (req, res) => {
+app.post('/api/reset-password', authenticate, async (req, res) => {
   try {
     const { email, newPassword } = req.body;
+
+    // Check permissions: Only Admin or Superadmin can reset passwords
+    if (req.user.role !== 'Admin' && req.user.role !== 'Superadmin') {
+      return res.status(403).json({ success: false, error: "Only Admin or Superadmin can reset passwords" });
+    }
+
     if (!email || !newPassword) {
       return res.status(400).json({ success: false, error: "Missing fields" });
     }
@@ -248,6 +254,17 @@ app.put('/api/users/:id', authenticate, async (req, res) => {
       employeeId, name, email, password, dob, role, managerId, phone,
       address, designation, profilePictureUrl, bannerUrl, company, isActive
     } = req.body;
+
+    // Check password update permission
+    if (password) {
+      const isSelf = req.user.id === Number(req.params.id);
+      const isAdminOrSuper = req.user.role === 'Admin' || req.user.role === 'Superadmin';
+
+      if (!isSelf && !isAdminOrSuper) {
+        return res.status(403).json({ error: "You are not authorized to change this user's password" });
+      }
+    }
+
     let hash = null;
     const isBcryptHash = (s) => /^\$2[ayb]\$.{56}$/.test(s);
     if (password) {

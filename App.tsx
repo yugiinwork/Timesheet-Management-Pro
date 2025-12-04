@@ -57,7 +57,7 @@ const normalizeDateToYYYYMMDD = (dateStr: string): string => {
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [view, setView] = useState<View>('DASHBOARD');
-  const [authView, setAuthView] = useState<'login' | 'signup' | 'forgotPassword'>('login');
+  const [authView, setAuthView] = useState<'login' | 'signup'>('login');
 
   // UI State
   const [isBestEmployeeModalOpen, setIsBestEmployeeModalOpen] = useState(false);
@@ -713,28 +713,7 @@ const App: React.FC = () => {
     }
   };
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setSuccessMessage('');
-    try {
-      const res = await fetch('/api/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, newPassword: password }) // reusing password state for new password
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setSuccessMessage('Password reset successfully! Please log in with your new password.');
-        setAuthView('login');
-        setPassword('');
-      } else {
-        setError(data.error || 'Failed to reset password.');
-      }
-    } catch (err) {
-      setError('An error occurred while resetting password.');
-    }
-  };
+
 
   // Export functions (unchanged, using existing logic)
   const downloadExcel = (filename: string, workbook: any) => {
@@ -1133,15 +1112,6 @@ const App: React.FC = () => {
                   required
                   className="mt-1 block w-full bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-sky-500 focus:border-sky-500"
                 />
-                <div className="mt-1 text-right">
-                  <button
-                    type="button"
-                    onClick={() => { setAuthView('forgotPassword'); setError(''); setSuccessMessage(''); }}
-                    className="text-sm text-sky-500 hover:text-sky-600 dark:text-sky-400 dark:hover:text-sky-300"
-                  >
-                    Forgot Password?
-                  </button>
-                </div>
               </div>
               {error && <p className="text-sm text-red-500">{error}</p>}
               {successMessage && <p className="text-sm text-green-500">{successMessage}</p>}
@@ -1161,72 +1131,6 @@ const App: React.FC = () => {
                 className="font-medium text-sky-600 hover:text-sky-500 focus:outline-none focus:underline"
               >
                 Sign up
-              </button>
-            </p>
-          </div>
-        </div>
-      );
-    } else if (authView === 'forgotPassword') {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-slate-900">
-          <div className="relative max-w-md w-full bg-white dark:bg-slate-800 p-8 rounded-lg shadow-lg">
-            <button
-              onClick={toggleTheme}
-              className="absolute top-4 right-4 p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500"
-              aria-label="Toggle dark mode"
-            >
-              {theme === 'light' ? (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                </svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              )}
-            </button>
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Reset Password</h1>
-            </div>
-            <form onSubmit={handleForgotPassword} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-500 dark:text-slate-400">Email Address</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => { setEmail(e.target.value); setError(''); setSuccessMessage(''); }}
-                  required
-                  className="mt-1 block w-full bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-sky-500 focus:border-sky-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-500 dark:text-slate-400">New Password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => { setPassword(e.target.value); setError(''); setSuccessMessage(''); }}
-                  required
-                  className="mt-1 block w-full bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-sky-500 focus:border-sky-500"
-                />
-              </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              {successMessage && <p className="text-sm text-green-500">{successMessage}</p>}
-              <div>
-                <button
-                  type="submit"
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500"
-                >
-                  Reset Password
-                </button>
-              </div>
-            </form>
-            <p className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
-              Remember your password?{' '}
-              <button
-                onClick={() => { setAuthView('login'); setError(''); setSuccessMessage(''); }}
-                className="font-medium text-sky-600 hover:text-sky-500 focus:outline-none focus:underline"
-              >
-                Log in
               </button>
             </p>
           </div>
@@ -1739,7 +1643,7 @@ const App: React.FC = () => {
         permanentlyDeleteNotification={permanentlyDeleteNotification}
         unreadCount={userNotifications.filter(n => !n.read).length}
       />
-      <div className="fixed top-5 right-5 z-[2147483647] space-y-2">
+      <div className="fixed top-5 right-5 z-[2147483647] space-y-7">
         {toastNotifications.map(notifi => (
           <NotificationToast
             key={notifi.id}
