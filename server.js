@@ -6,7 +6,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import path from 'path';
-import https from 'https';
+// import https from 'https';
 import fs from 'fs';
 import multer from 'multer';
 
@@ -678,7 +678,7 @@ app.post('/api/setup-superadmin', async (req, res) => {
 (async () => {
   // await ensureAdminUser();
 
-  if (process.env.NODE_ENV === 'production') {
+//   if (process.env.NODE_ENV === 'production') {
     try {
       const privateKey = fs.readFileSync('key.pem', 'utf8');
       const certificate = fs.readFileSync('cert.pem', 'utf8');
