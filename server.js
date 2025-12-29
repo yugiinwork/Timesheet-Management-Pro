@@ -19,7 +19,7 @@ const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'honored_one';
 
 // CORS setup
-const allowedOrigins = ['https://10.53.14.50:3000', 'http://localhost:3000', 'http://127.0.0.1:3000'];
+const allowedOrigins = ['https://10.53.14.50:3000', 'http://localhost:3000', 'http://127.0.0.1:3, 'https://timesheet-management-pro.vercel.app'000'];
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.indexOf(origin) !== -1) return callback(null, true);
