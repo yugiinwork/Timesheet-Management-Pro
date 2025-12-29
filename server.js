@@ -65,6 +65,15 @@ const executeQuery = async (sql, params = []) => {
   }
 };
 
+// Pool compatibility wrapper for Turso
+const pool = {
+    query: async (sql, params = []) => {
+          const result = await executeQuery(sql, params);
+          // Convert Turso result format to MySQL format: [[rows], result]
+          return [result.rows || [], result];
+        }
+      };
+
 /* MIGRATION NOTES: MySQL → Turso
  * 1. All existing pool.query(sql, params) calls need to be replaced with executeQuery(sql, params)
  * 2. Result format differs: MySQL returns [rows] array, Turso returns { rows } object
