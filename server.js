@@ -6,7 +6,6 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import path from 'path';
-// import https from 'https';
 import fs from 'fs';
 import multer from 'multer';
 
