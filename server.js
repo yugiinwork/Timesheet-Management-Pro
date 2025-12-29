@@ -48,21 +48,18 @@ const pool = mysql.createPool({
 
 // Turso Database Connection
 const db = createClient({
-  url: process.env.TURSO_CONNECTION_URL,
-  authToken: process.env.TURSO_AUTH_TOKEN
+TURSO_DATABASE_URL  authToken: process.env.TURSO_AUTH_TOKEN
 });
 
 // Database Query Helper - Supports both MySQL and Turso
 const executeQuery = async (sql, params = []) => {
-  if (process.env.TURSO_CONNECTION_URL && process.env.TURSO_AUTH_TOKEN) {
-    // Use Turso for production
+TURSO_DATABASE_URL    // Use Turso for production
     return await db.execute({ sql, args: params });
   } else {
     // Fallback to MySQL for local development
     // const [rows] = await pool.query(sql, params);
     // return { rows };
-    throw new Error('Database not configured. Set TURSO_CONNECTION_URL and TURSO_AUTH_TOKEN or ensure MySQL pool is available.');
-  }
+TURSO_DATABASE_URL  }
 };
 
 // Pool compatibility wrapper for Turso
