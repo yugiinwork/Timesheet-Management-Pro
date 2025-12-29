@@ -705,4 +705,10 @@ app.post('/api/setup-superadmin', async (req, res) => {
       console.log(`🔧 Default admin: admin@gmail.com / admin`);
     });
   }
+*/
+
+// VERCEL SERVERLESS: Simple HTTP server for Vercel
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✓ API server running at http://0.0.0.0:${PORT}`);
+});
 })();
