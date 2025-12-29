@@ -678,7 +678,7 @@ app.post('/api/setup-superadmin', async (req, res) => {
 (async () => {
   // await ensureAdminUser();
 
-//   if (process.env.NODE_ENV === 'production') {
+/*
     try {
       const privateKey = fs.readFileSync('key.pem', 'utf8');
       const certificate = fs.readFileSync('cert.pem', 'utf8');
