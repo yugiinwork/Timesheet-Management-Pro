@@ -678,35 +678,6 @@ app.post('/api/setup-superadmin', async (req, res) => {
 (async () => {
   // await ensureAdminUser();
 
-/*
-    try {
-      const privateKey = fs.readFileSync('key.pem', 'utf8');
-      const certificate = fs.readFileSync('cert.pem', 'utf8');
-      const credentials = { key: privateKey, cert: certificate };
-
-      const httpsServer = https.createServer(credentials, app);
-
-      httpsServer.listen(PORT, '0.0.0.0', () => {
-        console.log(`🚀 HTTPS API server running locally at https://10.53.14.50:${PORT}`);
-        console.log(`🌐 CORS for: https://10.53.14.50:3000`);
-        console.log(`🔧 Default admin: admin@gmail.com / admin`);
-      });
-    } catch (error) {
-      console.error('Failed to start HTTPS server:', error.message);
-      console.log('Falling back to HTTP...');
-      app.listen(PORT, '0.0.0.0', () => {
-        console.log(`🚀 API server running locally at http://10.53.14.50:${PORT}`);
-      });
-    }
-  } else {
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`🚀 API server running locally at http://10.53.14.50:${PORT}`);
-      console.log(`🌐 CORS for: https://10.53.14.50:3000`);
-      console.log(`🔧 Default admin: admin@gmail.com / admin`);
-    });
-  }
-*/
-
 // VERCEL SERVERLESS: Simple HTTP server for Vercel
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`✓ API server running at http://0.0.0.0:${PORT}`);
